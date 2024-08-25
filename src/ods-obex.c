@@ -412,7 +412,7 @@ ods_obex_setup_usbtransport (OdsObexContext *obex_context, gint intf_num,
 		goto err;
 	}
 
-	interfaces_num = OBEX_FindInterfaces(obex_context->obex_handle, &obex_intf);
+	interfaces_num = OBEX_EnumerateInterfaces(obex_context->obex_handle);
 	if (intf_num >= interfaces_num) {
 		g_set_error (error, ODS_ERROR, ODS_ERROR_FAILED, "Invalid interface number");
 		goto err;
@@ -1053,6 +1053,13 @@ ods_obex_srv_get (OdsObexContext *obex_context, obex_object_t *object,
 		g_message ("type: %s", obex_context->type);
 
 	OBEX_ObjectReParseHeaders (obex_context->obex_handle, object);
+
+	/* Samsung phones have been known to cause only remote to be non-null.
+        * This seems to fix things, at least for simple cases.
+        */
+        if (!obex_context->local && !obex_context->type && obex_context->remote) {
+                asprintf (&obex_context->local, "%s/%s", current_path, obex_context->remote);
+        }
 
 	if (obex_context->local) {
 		g_message ("Serving local file");
