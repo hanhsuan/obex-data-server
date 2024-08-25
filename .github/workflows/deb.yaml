@@ -1,0 +1,39 @@
+name: Build deb package (Noble)
+
+on:
+  workflow_dispatch: # Allows manual triggering
+  schedule:
+    # Runs every Sunday at 00:00 UTC
+    - cron: '0 0 * * SUN'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          path: build
+      - name: install dependencies
+        run: |
+          sudo apt update
+          sudo apt-get install -y \
+               mk-configure \
+               make \
+               clang \
+               debhelper \
+               libbluetooth-dev \
+               libdbus-1-dev \
+               libdbus-glib-1-dev \
+               libglib2.0-dev \
+               libmagickwand-dev \
+               libopenobex2-dev \
+               libusb-dev 
+      - name: build package
+        run: |
+          cd build
+          dpkg-buildpackage -b -uc -uc
+      - uses: actions/upload-artifact@v4
+        with:
+          name: obex-data-server_0.4.6-1_amd64.deb
+          path: obex-data-server_0.4.6-1_amd64.deb
