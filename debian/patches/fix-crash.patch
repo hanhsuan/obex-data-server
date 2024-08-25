@@ -1,0 +1,22 @@
+Description: fix transfer being reported as "not allowed"
+Author: Darren Salt <linux@youmustbejoking.demon.co.uk>
+Bug-Debian: https://bugs.debian.org/569258
+Forwarded: no
+Last-Update: 2017-01-19
+
+--- a/src/ods-obex.c
++++ b/src/ods-obex.c
+@@ -1054,6 +1054,13 @@
+ 
+ 	OBEX_ObjectReParseHeaders (obex_context->obex_handle, object);
+ 
++	/* Samsung phones have been known to cause only remote to be non-null.
++	 * This seems to fix things, at least for simple cases.
++	 */
++	if (!obex_context->local && !obex_context->type && obex_context->remote) {
++		asprintf (&obex_context->local, "%s/%s", current_path, obex_context->remote);
++	}
++
+ 	if (obex_context->local) {
+ 		g_message ("Serving local file");
+ 		/* open local file for reading */

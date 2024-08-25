@@ -1,0 +1,3 @@
+debian/README.examples
+test/ods-bip-test.py
+test/ods-session-test.py

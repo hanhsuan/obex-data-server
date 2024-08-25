@@ -1,0 +1,31 @@
+Source: obex-data-server
+Section: admin
+Priority: optional
+Maintainer: Debian QA Group <packages@qa.debian.org>
+Build-Depends:
+ debhelper (>= 10),
+ libbluetooth-dev,
+ libdbus-1-dev,
+ libdbus-glib-1-dev,
+ libglib2.0-dev,
+ libmagickwand-dev | libgtk2.0-dev,
+ libopenobex2-dev,
+ libusb-dev,
+Homepage: http://wiki.muiline.com/obex-data-server
+VCS-Git: https://anonscm.debian.org/git/collab-maint/obex-data-server.git
+VCS-Browser: https://anonscm.debian.org/git/collab-maint/obex-data-server.git
+Standards-Version: 3.9.8
+
+Package: obex-data-server
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Recommends:
+ python,
+ python-dbus,
+ python-gobject,
+Description: D-Bus service for OBEX client and server side functionality
+ obex-data-server is a D-Bus service providing high-level OBEX client and
+ server side functionality (currently supports OPP and FTP profiles and
+ Bluetooth transport).
