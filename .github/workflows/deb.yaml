@@ -1,4 +1,4 @@
-name: Build deb package (Noble)
+name: Build deb package
 
 on:
   workflow_dispatch: # Allows manual triggering
@@ -8,13 +8,31 @@ on:
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
+      - name: get ubuntu codename
+        id: get_codename
+        run: |
+          echo "CODENAME=$(lsb_release -cs)" >> $GITHUB_ENV
+          echo "Codename is $CODENAME"
+
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          if git show-ref --tags --verify --quiet "refs/tags/${CODENAME}"; then
+            echo "tag_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "tag_exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+        if: steps.check_tag.outputs.tag_exists == 'false'
         with:
           path: build
+
       - name: install dependencies
+        if: steps.check_tag.outputs.tag_exists == 'false'
         run: |
           sudo apt update
           sudo apt-get install -y \
@@ -29,11 +47,48 @@ jobs:
                libmagickwand-dev \
                libopenobex2-dev \
                libusb-dev 
+
       - name: build package
         run: |
           cd build
           dpkg-buildpackage -b -uc -uc
+
       - uses: actions/upload-artifact@v4
         with:
           name: obex-data-server_0.4.6-1_amd64.deb
           path: obex-data-server_0.4.6-1_amd64.deb
+
+      - name: Create tag if it does not exist
+        if: steps.check_tag.outputs.tag_exists == 'false'
+        run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+          git tag ${{ steps.set_tag_name.outputs.tag_name }}
+          git push origin ${{ steps.set_tag_name.outputs.tag_name }}
+
+      - name: Create release if tag was created
+        if: steps.check_tag.outputs.tag_exists == 'false'
+        env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO_NAME=$(basename -s .git $GITHUB_REPOSITORY)
+          REPO_OWNER=$(echo $GITHUB_REPOSITORY | cut -d'/' -f1)
+          API_JSON=$(printf '{"tag_name":"%s","name":"%s","body":"Automated release created from tag %s","draft":false,"prerelease":false}' "$CODENAME" "$CODENAME" "$CODENAME")
+
+          response=$(curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$API_JSON" \
+            "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases")
+
+          upload_url=$(echo "${response}" | jq -r .upload_url | sed -e "s/{?name,label}//")
+          echo "UPLOAD_URL=$upload_url" >> $GITHUB_ENV
+
+      - name: Upload binary asset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ls -l
+          curl -X POST -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary @obex-data-server_0.4.6-1_amd64.deb \
+            "$UPLOAD_URL?name=obex-data-server_0.4.6-1_amd64.deb"
