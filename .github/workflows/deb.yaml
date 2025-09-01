@@ -26,9 +26,9 @@ jobs:
         run: |
           cd build
           if git show-ref --tags --verify --quiet "refs/tags/${CODENAME}"; then
-            echo "tag_exists=true" >> $GITHUB_OUTPUT
-          else
             echo "tag_exists=false" >> $GITHUB_OUTPUT
+          else
+            echo "tag_exists=true" >> $GITHUB_OUTPUT
           fi
 
       - name: install dependencies
