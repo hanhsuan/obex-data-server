@@ -16,20 +16,20 @@ jobs:
           echo "CODENAME=$(lsb_release -cs)" >> $GITHUB_ENV
           echo "Codename is $CODENAME"
 
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          path: build
+
       - name: Check if tag exists
         id: check_tag
         run: |
+          cd build
           if git show-ref --tags --verify --quiet "refs/tags/${CODENAME}"; then
             echo "tag_exists=true" >> $GITHUB_OUTPUT
           else
             echo "tag_exists=false" >> $GITHUB_OUTPUT
           fi
-
-      - name: Checkout code
-        uses: actions/checkout@v5
-        if: steps.check_tag.outputs.tag_exists == 'false'
-        with:
-          path: build
 
       - name: install dependencies
         if: steps.check_tag.outputs.tag_exists == 'false'
@@ -49,11 +49,13 @@ jobs:
                libusb-dev 
 
       - name: build package
+        if: steps.check_tag.outputs.tag_exists == 'false'
         run: |
           cd build
           dpkg-buildpackage -b -uc -uc
 
       - uses: actions/upload-artifact@v4
+        if: steps.check_tag.outputs.tag_exists == 'false'
         with:
           name: obex-data-server_0.4.6-1_amd64.deb
           path: obex-data-server_0.4.6-1_amd64.deb
@@ -85,6 +87,7 @@ jobs:
           echo "UPLOAD_URL=$upload_url" >> $GITHUB_ENV
 
       - name: Upload binary asset
+        if: steps.check_tag.outputs.tag_exists == 'false'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
